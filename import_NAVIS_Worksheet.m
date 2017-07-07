@@ -1,4 +1,3 @@
-# NAVIS_Float
 %% Load data from a Sea-Bird Navis Autonomous Float into MATLAB   
 % This script imports the data contained in the .msg files that are
 % transmitted from the NAVIS float to the server. This includes the
