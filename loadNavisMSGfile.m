@@ -376,3 +376,7 @@ fclose(fid);
 if ~exist('footer', 'var')
     footer = [];
 end
+
+if ~exist('profile', 'var')
+    profile = [];
+end
