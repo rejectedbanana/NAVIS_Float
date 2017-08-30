@@ -11,9 +11,14 @@ function [header, park, discrete, profile, footer] = loadNavisMSGfile( target_fi
 %   target_file     =   NAVIS .msg file to be loaded into Matlab such as 
 %                        target_file = 'C:\NAVIS\data\0322\0322.001.msg';
 %   payload         =   cell containing list of sensors in the scientific
-%                       payload on the NAVIS Float. 
+%                       payload on the NAVIS Float.
 %                       e.g. for a BGCi float
-%                         payload = {'sbe41cp', 'sbe63', 'mcoms'}; 
+%                         payload = {'sbe41cp', 'sbe63', 'mcoms'};
+%                    For a list of possible sensors in the command line
+%                    type:
+%                    "help NavisSensor2vars"
+%
+% 
 %
 % OUTPUT: 
 %   header          =   mission configuration from config.m
@@ -119,7 +124,7 @@ while regexp( fline, 'ParkPts', 'once')
 end
 % parse the park data for a float with additional sensors 
 pctr = 1; 
-while regexp( fline(1:7), 'ParkObs')
+while isempty( regexp(fline, '<EOT>', 'once')) && ~isempty(regexp(fline(1:7), 'ParkObs'))
    parkline = strsplit( fline ); 
    % pull the time
    park.time(pctr) = datenum( strcat(parkline{2:5}), 'mmmddyyyyHH:MM:SS' );
@@ -131,6 +136,8 @@ while regexp( fline(1:7), 'ParkObs')
    fline = fgetl(fid); 
    pctr = pctr+1; 
 end
+
+if isempty( regexp(fline, '<EOT>', 'once')) 
 % get the termination line that follows the last park data
 stringin = strsplit( fline );
 % parse the termination date
@@ -157,6 +164,7 @@ fline = fgetl( fid );
 stringin = strsplit( fline );
 discrete.vars = stringin(2:end);
 fline = fgetl( fid );
+end
 
 % if discrete data exists, grab the data
 if exist('discrete', 'var')
@@ -201,6 +209,7 @@ while ~feof( fid )
     while isempty( regexp(fline, '#', 'once')) ... % continuous profiling or gps
             && isempty( regexp(fline, 'NpfFwRev', 'once'))... % start of footer
             && isempty( regexp(fline, '=', 'once'))...
+            && isempty( regexp(fline, '<EOT>', 'once'))...
             fline = fgetl(fid);
     end
     
@@ -242,9 +251,9 @@ while ~feof( fid )
         end
         % start the counter
         ctr = 1;
-        while ctr ~= profile.NBin+1
+        while (ctr ~= profile.NBin+1) && ( ~feof(fid) || isempty( regexp( fline, '<EOT>', 'once') ) )
             % figure out what kind of hex string it is
-            if ~isempty( regexp( fline, '[', 'once'))
+            if ~isempty( regexp( fline, '[', 'once')) 
                 % find the number of bins in the repeat line
                 s1 = regexp( fline, '[');
                 s2 = regexp( fline, ']');
@@ -277,6 +286,12 @@ while ~feof( fid )
             end
             % get the next line
             fline = fgetl(fid);
+            
+            % make sure the next line contains characters, otherwise break
+            % out of loop
+            if ~ischar( fline )
+                break
+            end
         end
         
         % now convert hex to real data
