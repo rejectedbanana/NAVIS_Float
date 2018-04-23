@@ -3,8 +3,8 @@ function [header, park, discrete, profile, footer] = loadNavisMSGfile( target_fi
 % function [header, park, discrete, profile, footer] = loadNavisMSGfile( target_file, payload )
 %
 % DESCRIPTION:
-% Import all data from a .msg file transmitted by a Sea-Bird NAVIS autonomous
-% float into Matlab. Mostly able to handle incomplete .msg files and data
+% Import all data from a single .msg file transmitted by a Sea-Bird NAVIS 
+% floats into Matlab. Mostly able to handle incomplete .msg files and data
 % streams, but the exception will always arise.
 %
 % INPUT:

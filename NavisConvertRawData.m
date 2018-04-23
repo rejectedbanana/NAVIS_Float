@@ -24,35 +24,35 @@ switch varin
     case 'Nsamples'
         datout = datin;
         %SBE 41cp
-    case 'p'
+    case 'p' %pressure
         for dd = 1:length(datin) % one scan at a time to get conversion right
             datout(dd,1) = hextop(datin(dd));
         end
-    case 't'
+    case 't' %temperature
         for dd = 1:length(datin) % one scan at a time to get conversion right
             datout(dd,1) = hextot(datin(dd));
         end
-    case 's'
+    case 's' %salinity
         for dd = 1:length(datin) % one scan at a time to get conversion right
             datout(dd,1) = hextos(datin(dd));
         end
         % SBE 63
-    case 'O2ph'
+    case 'O2ph' % oxygen phase
         datout = (datin./100000.0)-10.0;
-    case 'O2tV'
-        datout = (datin./100000.0)-1.0;
+    case 'O2tV' % oxygen temperature
+        datout = (datin./1000000.0)-1.0;
     % MCOMS/ECO
-    case 'Fl'
+    case 'Fl' % fluorometer
         datout = datin-500;
-    case 'Bb'
+    case 'Bb' % backscatter
         datout = datin-500;
-    case 'Cdm'
+    case 'Cdm' % CDOM
         datout = datin-500;
     case 'Ntu'
         datout = datin-500;
-    case 'Bb'
+    case 'Bb' % backscatter
         datout = datin-500;
-    case 'Bb2'
+    case 'Bb2' % backscatter 2
         datout = datin-500;
     % pH
     case 'phV'
