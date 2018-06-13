@@ -124,7 +124,7 @@ while regexp( fline, 'ParkPts', 'once')
 end
 % parse the park data for a float with additional sensors 
 pctr = 1; 
-while isempty( regexp(fline, '<EOT>', 'once')) && ~isempty(regexp(fline(1:7), 'ParkObs'))
+while isempty( regexp(fline, '<EOT>', 'once')) && length( fline ) > 7 && ~isempty(regexp(fline(1:7), 'ParkObs')) 
    parkline = strsplit( fline ); 
    % pull the time
    park.time(pctr) = datenum( strcat(parkline{2:5}), 'mmmddyyyyHH:MM:SS' );
@@ -137,33 +137,37 @@ while isempty( regexp(fline, '<EOT>', 'once')) && ~isempty(regexp(fline(1:7), 'P
    pctr = pctr+1; 
 end
 
-if isempty( regexp(fline, '<EOT>', 'once')) 
-% get the termination line that follows the last park data
-stringin = strsplit( fline );
-% parse the termination date
-profendline = fline;
-c1 = regexp( profendline, ':');
-profenddatestr = profendline(c1(1)+1:end);
-park.terminated = strtrim(profenddatestr);
-park.terminated_datenum = datenum( profenddatestr, 'dddd mmm dd HH:MM:SS yyyy');
-fline = fgetl(fid);
-% assign the profile info
-header.Profile =  stringin{3};
-park.Profile = stringin{3};
-
-
-% ________\\
-% GRAB THE DISCRETE DATA
-%%%%%%%%%%%%%%%%%%%%%%%%
-% find the number of discrete samples
-stringin = strsplit( fline );
-discrete.samples = str2num( stringin{end} );
-fline = fgetl( fid );
-
-% get the discrete data variables
-stringin = strsplit( fline );
-discrete.vars = stringin(2:end);
-fline = fgetl( fid );
+if isempty( regexp(fline, '<EOT>', 'once')) && ~isempty( regexp( fline, '$'))
+    % get the termination line that follows the last park data
+    stringin = strsplit( fline );
+    % parse the termination date
+    profendline = fline;
+    c1 = regexp( profendline, ':');
+    profenddatestr = profendline(c1(1)+1:end);
+    park.terminated = strtrim(profenddatestr);
+    park.terminated_datenum = datenum( profenddatestr, 'dddd mmm dd HH:MM:SS yyyy');
+    fline = fgetl(fid);
+    % assign the profile info
+    header.Profile =  stringin{3};
+    park.Profile = stringin{3};
+    
+    % ________\\
+    % GRAB THE DISCRETE DATA
+    %%%%%%%%%%%%%%%%%%%%%%%%
+    % find the number of discrete samples
+    stringin = strsplit( fline );
+    discrete.samples = str2num( stringin{end} );
+    fline = fgetl( fid );
+    
+    % get the discrete data variables
+    stringin = strsplit( fline );
+    discrete.vars = stringin(2:end);
+    fline = fgetl( fid );
+else
+    stringin = strsplit( target_file, '\'); 
+    % assign the profile info
+    header.Profile =  stringin{end}(1:end-4);
+    park.Profile = stringin{end}(1:end-4);
 end
 
 % if discrete data exists, grab the data
