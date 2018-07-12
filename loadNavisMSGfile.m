@@ -124,12 +124,12 @@ while regexp( fline, 'ParkPts', 'once')
 end
 % parse the park data for a float with additional sensors 
 pctr = 1; 
-while isempty( regexp(fline, '<EOT>', 'once')) && length( fline ) > 7 && ~isempty(regexp(fline(1:7), 'ParkObs')) 
+while ischar( fline ) && isempty( regexp(fline, '<EOT>', 'once')) && length( fline ) > 7 && ~isempty(regexp(fline(1:7), 'ParkObs')) 
    parkline = strsplit( fline ); 
    % pull the time
    park.time(pctr) = datenum( strcat(parkline{2:5}), 'mmmddyyyyHH:MM:SS' );
    % pull the variables
-   for vv = 2:length( vars )
+   for vv = 2:length( parkline )-4 
        park.(vars{vv})(pctr) = str2num(parkline{vv+4});
    end
    % advance forward 
@@ -137,7 +137,7 @@ while isempty( regexp(fline, '<EOT>', 'once')) && length( fline ) > 7 && ~isempt
    pctr = pctr+1; 
 end
 
-if isempty( regexp(fline, '<EOT>', 'once')) && ~isempty( regexp( fline, '$'))
+if ischar( fline ) && isempty( regexp(fline, '<EOT>', 'once')) && ~isempty( regexp( fline, '$'))
     % get the termination line that follows the last park data
     stringin = strsplit( fline );
     % parse the termination date
@@ -210,18 +210,19 @@ while ~feof( fid )
     % _______\\
     % ADVANCE TO THE NEXT SECTION
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    while isempty( regexp(fline, '#', 'once')) ... % continuous profiling or gps
+    while ischar( fline )...
+            && isempty( regexp(fline, '#', 'once')) ... % continuous profiling or gps
             && isempty( regexp(fline, 'NpfFwRev', 'once'))... % start of footer
             && isempty( regexp(fline, '=', 'once'))...
-            && isempty( regexp(fline, '<EOT>', 'once'))...
-            fline = fgetl(fid);
+            && isempty( regexp(fline, '<EOT>', 'once'))
+        fline = fgetl(fid);
     end
     
     % ______\\
     % GRAB THE CONTINUOUS PROFILING DATA
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % check whether the continuous profile was started or not
-    if ~isempty( regexp( fline, 'Sbe41cpSerNo', 'once')) % continous profile started        
+    if ischar( fline ) && ~isempty( regexp( fline, 'Sbe41cpSerNo', 'once')) % continous profile started        
         % grab the start of the profile and the serial number
         stringin = fline;
         s1 = regexp( stringin, 'S');
@@ -237,25 +238,63 @@ while ~feof( fid )
         % advance to the next line
         fline = fgetl( fid );
         % advance through the lines before the hex data
-        while ~isempty(regexp( fline, 'ser', 'once')) || isempty(fline)
+        while ischar( fline ) && (~isempty(regexp( fline, 'ser', 'once')) || isempty(fline) ) 
             if regexp( fline, 'ser') % if there is a serial # string, just pull it into the structure
                 profile.serialstr = fline;
+                % parse the serial string
+                % find the names
+                serialnames = regexp( fline, '\w*:\>', 'match') ;
+                % find the values
+                serialvalues = regexp( fline, '\w*:\>', 'split');
+                % take out the first value
+                serialvalues = serialvalues(2:end);
+                % cycle through the serial numbers
+                for ss = 1:length( serialvalues )
+                    serial = regexp( serialvalues{ss}, ',', 'split'); 
+                    if length( serial ) > 1
+                        profile.serialname{ss} = serial{1}(~isspace(serial{1}));
+                        profile.serialnumber{ss} = strtrim(serial{2}); 
+                        profile.serialvalue{ss} = []; 
+                    elseif length( serial ) == 1
+                        profile.serialname{ss} = serialnames{ss}(1:end-1);
+                        profile.serialnumber{ss} = [];
+                        profile.serialvalue{ss} = strtrim(serial{1});
+                    else
+                        profile.serialname{ss} = serial{1}(~isspace(serial{1}));
+                        profile.serialnumber{ss} = [];
+                        profile.serialvalue{ss} = [];
+                    end
+                end %ss
+                
                 fline = fgetl( fid );
             elseif isempty(fline) % skip empty lines
                 fline = fgetl( fid );
             end
         end
+        
         % figure out the hex string
-        [p_vars, hexstr] = NavisPayload2Hex(payload);
-        % figure out the line length
-        hexlength = sum( str2double(regexp( hexstr, '[0-9]', 'match')));
-        % preallocate the array
-        for vv = 1:length( p_vars )
-            hex.(p_vars{vv}) = nan( profile.NBin, 1 );
+        for pp = 1:length( payload )
+            [p_vars{pp}, hexstr{pp}] = NavisPayload2Hex(payload{pp});
+            % figure out the line length
+            hexlength(pp) = sum( str2double(regexp( hexstr{pp}, '[0-9]', 'match')));
         end
+        
+        % figure out which p_var has the longest length
+        maxvars = find( hexlength == nanmax( hexlength ) ); 
+        % preallocate the array
+        for vv = 1:length( p_vars{maxvars} )
+            hex.(p_vars{maxvars}{vv}) = nan( profile.NBin, 1 );
+        end
+        
         % start the counter
         ctr = 1;
-        while (ctr ~= profile.NBin+1) && ( ~feof(fid) || isempty( regexp( fline, '<EOT>', 'once') ) )
+        while ischar( fline ) ...
+            && (  ~feof(fid)...
+                || isempty( regexp( fline, '<EOT>', 'once' ) )...
+                || isempty( regexp( fline, '#', 'once'))...
+                ) ...
+            && (ctr <= profile.NBin) ...
+            && isempty( regexp( fline, 'Resm', 'once'))
             % figure out what kind of hex string it is
             if ~isempty( regexp( fline, '[', 'once')) 
                 % find the number of bins in the repeat line
@@ -264,29 +303,31 @@ while ~feof( fid )
                 bins = str2num( fline( s1+1:s2-1 ) );
                 % now crop to just the data string
                 fline  = fline( 1:s1-1 );
+            elseif length( fline ) < nanmin( hexlength )
+                % don't advance the counter if the line is truncated
+                bins = 0; 
             else
                 % default bin of length 1
                 bins = 1;
             end
             
             % make sure the string length matches the known hex string length 
-            if length( fline ) == hexlength
+            % find the matching  hex indice
+            hexind = find( length( fline ) == hexlength, 1);
+            if ~isempty( hexind )
                 % parse the string
-                hexline = sscanf( fline, hexstr );
+                hexline = sscanf( fline, hexstr{hexind} );
                 % cycle through the bins
                 for bb = 1:bins
-                    % only fill in data if it is not all zeros
+                    % only fill in data if CTD is not all zeros
                     if isempty(regexp(fline(1:14), '00000000000000', 'once'))
-                        for vv = 1:length(p_vars)
-                            hex.(p_vars{vv})(ctr) = hexline(vv);
+                        for vv = 1:length(p_vars{hexind})
+                            hex.(p_vars{hexind}{vv})(ctr) = hexline(vv);
                         end
+                        % advance the counter
+                        ctr = ctr+1;
                     end
-                    % advance the counter
-                    ctr = ctr+1;
                 end
-            else
-                % advance the counter
-                ctr = ctr+bins; 
             end
             % get the next line
             fline = fgetl(fid);
@@ -296,13 +337,15 @@ while ~feof( fid )
             if ~ischar( fline )
                 break
             end
+            
+            % make sure 
         end
         
         % now convert hex to real data
-        for vv = 1:length( p_vars )
-            profile.(p_vars{vv}) = NavisConvertRawData(p_vars{vv}, hex.(p_vars{vv}));
+        for vv = 1:length( p_vars{maxvars} )
+            profile.(p_vars{maxvars}{vv}) = NavisConvertRawData(p_vars{maxvars}{vv}, hex.(p_vars{maxvars}{vv}));
             % and truncate the data
-            profile.(p_vars{vv}) = profile.(p_vars{vv})(1:ctr-1);
+            profile.(p_vars{maxvars}{vv}) = profile.(p_vars{maxvars}{vv})(1:ctr-1);
         end
         
         
@@ -310,21 +353,36 @@ while ~feof( fid )
     % GRAB THE GPS DATA
     %%%%%%%%%%%%%%%%%%%
     % check whether it is a GPS line
-    elseif ~isempty( regexp(fline, '# GPS fix obtained', 'once')) % GPS fix obtained
+    elseif ischar( fline ) && ~isempty( regexp(fline, '# GPS fix obtained', 'once')) % GPS fix obtained
             % # GPS fix obtained in 68 seconds.
             % #          lon      lat mm/dd/yyyy hhmmss nsat
             % Fix:   90.9000 -64.4983 12/19/2016 194710   10
             % output the status
             profile.gps_status = fline;
             % skip the header line
-            fline = fgetl( fid);
-            fline = fgetl( fid);
-            % split the string
-            fixstr = strsplit(fline);
-            profile.gps_datenum = datenum( [fixstr{4}, ' ',fixstr{5}], 'mm/dd/yyyy HHMMSS');
-            profile.n_gps_sat = str2num(fixstr{end});
-            profile.lon = str2num(fixstr{2});
-            profile.lat = str2num(fixstr{3});
+            fline = fgetl( fid );
+            fline = fgetl( fid );
+            if ischar( fline )
+                % split the string
+                fixstr = strsplit(fline);
+                try
+                    profile.gps_datenum = datenum( [fixstr{4}, ' ',fixstr{5}], 'mm/dd/yyyy HHMMSS');
+                    profile.n_gps_sat = str2num(fixstr{end});
+                    profile.lon = str2num(fixstr{2});
+                    profile.lat = str2num(fixstr{3});
+                catch
+                    profile.gps_datenum = nan;
+                    profile.n_gps_sat = nan;
+                    profile.lon = nan;
+                    profile.lat = nan;
+                end
+            else
+                profile.gps_datenum = nan;
+                profile.n_gps_sat = nan;
+                profile.lon = nan;
+                profile.lat = nan;
+            end
+                
             % grab the next line
             fline = fgetl( fid );
             
@@ -333,7 +391,7 @@ while ~feof( fid )
     % GRAB OUTPUT IF NO GPS FIX
     %%%%%%%%%%%%%%%%%%%%%%%%%%%
     % check whether the float has gone to ice evasion mode
-    elseif ~isempty( regexp(fline, '# Ice evasion', 'once')) || ~isempty( regexp(fline, 'surface ice', 'once')) || ~isempty( regexp(fline, 'GPS fix failed', 'once'))
+    elseif ischar( fline ) && ( ~isempty( regexp(fline, '# Ice evasion', 'once')) || ~isempty( regexp(fline, 'surface ice', 'once')) || ~isempty( regexp(fline, 'GPS fix failed', 'once')))
             % # Ice evasion initiated at P=19.0dbars.
             % Fix: GPS fix not available due to surface ice.
             
@@ -356,7 +414,7 @@ while ~feof( fid )
     % ________\\
     % PARSE THE DATA IN THE FOOTER
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    elseif ~isempty( regexp( fline, 'NpfFwRev', 'once'))
+    elseif ischar( fline ) && ~isempty( regexp( fline, 'NpfFwRev', 'once'))
         while isempty( regexp( fline, '<EOT>', 'once') ) && ~feof(fid) && ~isempty( fline ) && ~isempty( regexp(fline, '=', 'once'))
                 % split the string
                 footerstr = strsplit( fline, '=');
