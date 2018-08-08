@@ -137,7 +137,7 @@ while ischar( fline ) && isempty( regexp(fline, '<EOT>', 'once')) && length( fli
    pctr = pctr+1; 
 end
 
-if ischar( fline ) && isempty( regexp(fline, '<EOT>', 'once')) && ~isempty( regexp( fline, '$'))
+if ischar( fline ) && isempty( regexp(fline, '<EOT>', 'once')) && ~isempty( regexp( fline, '\$'))
     % get the termination line that follows the last park data
     stringin = strsplit( fline );
     % parse the termination date
@@ -228,7 +228,11 @@ while ~feof( fid )
         s1 = regexp( stringin, 'S');
         % find the start time
         profile.start = strtrim( stringin(2:s1-1) );
+        if ~isempty( profile.start)
         profile.start_datenum = datenum( profile.start, 'mmm dd yyyy HH:MM:SS');
+        else
+            profile.start_datenum = []; 
+        end
         stringin = strsplit( stringin );
         for ss = 6:8
             infoin = stringin{ss};
@@ -289,10 +293,8 @@ while ~feof( fid )
         % start the counter
         ctr = 1;
         while ischar( fline ) ...
-            && (  ~feof(fid)...
-                || isempty( regexp( fline, '<EOT>', 'once' ) )...
-                || isempty( regexp( fline, '#', 'once'))...
-                ) ...
+            && (  ~feof(fid) || isempty(regexp(fline,'<EOT>','once')) ) ...
+            && isempty( regexp( fline, '#', 'once'))...
             && (ctr <= profile.NBin) ...
             && isempty( regexp( fline, 'Resm', 'once'))
             % figure out what kind of hex string it is
