@@ -361,11 +361,8 @@ while ~feof( fid )
                 redline = repmat( 'F', [1, hexct]); 
                 % convert to a decimal number
                 redline = hex2dec( redline );
-                % now find the redline values
-                ninds = find( hex.(p_vars{pp}{vv}) == redline ); 
-                % and replace them with nans
-                hex.(p_vars{pp}{vv})(ninds) = nan; 
-                
+                % now find the redline values and replace them with nans
+                hex.(p_vars{pp}{vv})(hex.(p_vars{pp}{vv}) == redline) = nan; 
             end %vv
         end %pp
        
