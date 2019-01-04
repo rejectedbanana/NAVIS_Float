@@ -352,7 +352,25 @@ while ~feof( fid )
             % make sure 
         end
         
-        % now convert hex to real data
+        % define the redline value for each variable nan those out
+        for pp = 1:length( payload )
+            hexcts = regexp( hexstr{pp}, 'x', 'split'); 
+            for vv = 1:length( p_vars{pp} )
+                hexct = str2num( hexcts{vv}(2:end) );
+                % create the redline hex string
+                redline = repmat( 'F', [1, hexct]); 
+                % convert to a decimal number
+                redline = hex2dec( redline );
+                % now find the redline values
+                ninds = find( hex.(p_vars{pp}{vv}) == redline ); 
+                % and replace them with nans
+                hex.(p_vars{pp}{vv})(ninds) = nan; 
+                
+            end %vv
+        end %pp
+       
+        % ________\\
+        % CONVERT HEX DATA TO REAL DATA
         for vv = 1:length( p_vars{maxvars} )
             profile.(p_vars{maxvars}{vv}) = NavisConvertRawData(p_vars{maxvars}{vv}, hex.(p_vars{maxvars}{vv}));
             % and truncate the data
