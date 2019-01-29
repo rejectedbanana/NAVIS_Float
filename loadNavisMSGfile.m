@@ -57,6 +57,8 @@ header.Npf = fline( s1:s2 );
 header.FwRev = fline( s1:s2 );
 % move to next line
 fline = fgetl(fid);
+% define the platform type
+header.platform_type = 'NAVIS_A'; 
 
 
 % ________\\
@@ -106,6 +108,8 @@ elseif regexp(fline, 'Date')
 else
     vars = {'time', 'p', 't', 's'};
 end
+% make sure salinity is psal
+vars = strrep( vars, 's', 'psal'); 
 % add the variables to the parked structure
 park.vars = vars; 
 % parse the parked data for vanilla floats (only CTD)
@@ -117,7 +121,7 @@ while regexp( fline, 'ParkPts', 'once')
    % vanilla float variables
    park.p(pctr) = str2num(parkline{8});
    park.t(pctr) = str2num(parkline{9});
-   park.s(pctr) = str2num(parkline{10});
+   park.psal(pctr) = str2num(parkline{10});
    % advance forward
    fline = fgetl(fid); 
    pctr = pctr+1; 
@@ -162,6 +166,9 @@ if ischar( fline ) && isempty( regexp(fline, '<EOT>', 'once')) && ~isempty( rege
     % get the discrete data variables
     stringin = strsplit( fline );
     discrete.vars = stringin(2:end);
+    % make sure salinity is psal
+    discrete.vars = strrep( discrete.vars, 's', 'psal'); 
+    % move onto the next line
     fline = fgetl( fid );
 else
     stringin = strsplit( target_file, '\'); 
@@ -185,7 +192,7 @@ if exist('discrete', 'var')
     % now go through the discrete data
     for dd = 1:discrete.samples
         % get out of the loop if the end of transmission 
-        if ~isempty( regexp(fline, '<EOT>', 'once'))
+        if  ~isstr( fline )|| ~isempty( regexp(fline, '<EOT>', 'once'))
             break
         else
             stringin = strsplit( fline );

@@ -29,6 +29,8 @@ switch varin
         hexfmt = '%04x';
     case 's'
         hexfmt = '%04x';
+    case 'psal'
+        hexfmt = '%04x';
     case 'NsamplesCTD'
         hexfmt = '%02x';
     % SBE 63 

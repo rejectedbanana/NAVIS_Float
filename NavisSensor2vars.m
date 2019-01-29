@@ -40,7 +40,7 @@ function [vars] = NavisSensor2vars(sensor)
         
 switch sensor
     case 'sbe41cp'
-        vars = {'p', 't', 's', 'NsamplesCTD'};
+        vars = {'p', 't', 'psal', 'NsamplesCTD'};
     case 'sbe63'
         vars = {'O2ph', 'O2tV', 'NsamplesO2'};
     case 'sbe63flip'
