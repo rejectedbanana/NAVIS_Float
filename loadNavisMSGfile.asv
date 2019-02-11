@@ -112,8 +112,8 @@ else
     vars = {'time', 'p', 't', 's'};
 end
 % make sure salinity is psal
-cind = strmatch('s', vars); 
-vars{cind} = 'psal'; 
+cind = strma
+vars = strrep( vars, 's', 'psal'); 
 % add the variables to the parked structure
 park.vars = vars; 
 % parse the parked data for vanilla floats (only CTD)
@@ -171,8 +171,7 @@ if ischar( fline ) && isempty( regexp(fline, '<EOT>', 'once')) && ~isempty( rege
     stringin = strsplit( fline );
     discrete.vars = stringin(2:end);
     % make sure salinity is psal
-    cind = strmatch('s', discrete.vars); 
-    discrete.vars{cind} = 'psal';
+    discrete.vars = strrep( discrete.vars, 's', 'psal'); 
     % move onto the next line
     fline = fgetl( fid );
 else

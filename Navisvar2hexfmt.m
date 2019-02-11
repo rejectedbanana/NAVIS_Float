@@ -68,6 +68,17 @@ switch varin
         hexfmt = '%04x';
     case 'NsamplespH'
         hexfmt = '%02x';
+    % pH4
+    case 'phVrs'
+        hexfmt = '%06x';
+    case 'phVk'
+        hexfmt = '%04x';
+    case 'phIb'
+        hexfmt = '%04x';
+    case 'phIk'
+        hexfmt = '%04x';
+    case 'NsamplespH4'
+        hexfmt = '%02x';
     %CRV
     case 'Ccounts'
         hexfmt = '%04x';

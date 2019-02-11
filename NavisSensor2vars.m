@@ -57,6 +57,9 @@ switch sensor
         vars = {'Fl', 'Bb', 'Cdm', 'NsamplesMCOMS'};
     case 'pH'
         vars = {'phV', 'phT', 'NsamplespH'};
+    case 'pH4'
+        % vars = {'phVrs', 'phVk', 'phIb','phIk', 'NsamplespH4'};
+        vars = {'phVrs', 'NsamplespH'};
     case 'pHflip'
         vars = {'phT', 'phV', 'NsamplespH'};
     case 'CRover'

@@ -36,6 +36,10 @@ switch varin
         for dd = 1:length(datin) % one scan at a time to get conversion right
             datout(dd,1) = hextos(datin(dd));
         end
+    case 'psal' %salinity
+        for dd = 1:length(datin) % one scan at a time to get conversion right
+            datout(dd,1) = hextos(datin(dd));
+        end
         % SBE 63
     case 'O2ph' % oxygen phase
         datout = (datin./100000.0)-10.0;
@@ -61,6 +65,13 @@ switch varin
         for dd = 1:length(datin) % one scan at a time to get conversion right
             datout(dd,1) = hextot(datin(dd));
         end
+    % pH4
+    case 'phVrs'
+        datout = datin./1000000.0 - 2.5; 
+    case 'phVk'
+        for dd = 1:length(datin) % one scan at a time to get conversion right
+            datout(dd,1) = hextot(datin(dd));
+        end    
     %CRV
     case 'Ccounts'
         datout = datin-200;
